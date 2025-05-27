@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 from fabric import local
 from datetime import datetime
 import os
