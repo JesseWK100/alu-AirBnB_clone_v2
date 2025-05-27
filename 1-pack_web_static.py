@@ -6,9 +6,9 @@ Usage:
     $ fab -f 1-pack_web_static.py do_pack
 """
 
-from fabric.api import local
-from datetime import datetime
 import os
+from datetime import datetime
+from fabric.api import local
 
 
 def do_pack():
@@ -22,20 +22,19 @@ def do_pack():
     Returns:
         str: Path to the created archive, or None if failure.
     """
-    # Ensure versions directory exists
     versions_dir = "versions"
     if not os.path.isdir(versions_dir):
         os.makedirs(versions_dir)
 
-    # Generate archive filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     archive_name = f"web_static_{timestamp}.tgz"
     archive_path = os.path.join(versions_dir, archive_name)
 
-    # Create the archive
     try:
-        local(f"tar -cvzf {archive_path} web_static/")
-        print(f"web_static packed: {archive_path} -> {os.path.getsize(archive_path)}Bytes")
+        print(f"Packing web_static to {archive_path}")
+        local(f"tar -cvzf {archive_path} web_static")
+        size = os.path.getsize(archive_path)
+        print(f"web_static packed: {archive_path} -> {size}Bytes")
         return archive_path
     except Exception:
         return None
