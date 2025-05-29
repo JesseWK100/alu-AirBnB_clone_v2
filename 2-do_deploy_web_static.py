@@ -2,63 +2,53 @@
 """
 Distributes an archive to web servers using Fabric.
 
-Functions:
-    do_deploy(archive_path): Uploads and deploys the given .tgz archive
-        to the web servers defined in env.hosts. Returns True on success;
-        False otherwise.
+Usage:
+    fab do_deploy:archive_path=versions/web_static_YYYYmmddHHMMSS.tgz
+
+Environment:
+    env.hosts: list of web server IPs
+    env.user:   remote user (ubuntu)
+    env.key_filename: path to your SSH private key (optional)
 """
+
 import os
 from fabric.api import env, put, run
 
-# Replace with your actual server IPs
+# ====== CONFIGURE YOUR SERVERS HERE ======
 env.hosts = ['34.205.18.224', '44.204.39.103']
-
+env.user = 'ubuntu'
+# env.key_filename = '/home/ubuntu/.ssh/id_rsa'
+# =========================================
 
 def do_deploy(archive_path):
     """
-    Distribute an archive to the web servers.
-
-    Arguments:
-        archive_path (str): Path to the .tgz archive to deploy.
-
-    Returns:
-        bool: True if all operations succeed, False otherwise.
+    Upload and deploy a .tgz archive to web servers.
+    Returns True on success, False on failure.
     """
-    if not os.path.exists(archive_path):
+    if not os.path.isfile(archive_path):
         return False
 
-    # Extract filename and base name
-    archive_file = os.path.basename(archive_path)
-    release_name = os.path.splitext(archive_file)[0]
-    release_dir = f"/data/web_static/releases/{release_name}/"
+    filename = os.path.basename(archive_path)
+    name = filename.rsplit('.', 1)[0]
+    release_dir = f"/data/web_static/releases/{name}/"
 
     try:
-        # Upload the archive to /tmp/
-        put(archive_path, f"/tmp/{archive_file}")
-
-        # Create the release directory
+        # 1. Upload archive to /tmp/
+        put(archive_path, f"/tmp/{filename}")
+        # 2. Create release directory
         run(f"mkdir -p {release_dir}")
-
-        # Uncompress the archive into the release directory
-        run(f"tar -xzf /tmp/{archive_file} -C {release_dir}")
-
-        # Remove the uploaded archive from /tmp/
-        run(f"rm /tmp/{archive_file}")
-
-        # Move content out of the web_static folder
+        # 3. Uncompress into the new release dir
+        run(f"tar -xzf /tmp/{filename} -C {release_dir}")
+        # 4. Remove the uploaded archive
+        run(f"rm /tmp/{filename}")
+        # 5. Move content out of web_static folder
         run(f"mv {release_dir}web_static/* {release_dir}")
-
-        # Remove the now-empty web_static directory
+        # 6. Delete now-empty web_static folder
         run(f"rm -rf {release_dir}web_static")
-
-        # Delete the existing symbolic link
+        # 7. Remove current symlink
         run("rm -rf /data/web_static/current")
-
-        # Create a new symbolic link to the new release
+        # 8. Create new symlink
         run(f"ln -s {release_dir} /data/web_static/current")
-
-        print("New version deployed!")
         return True
-
     except Exception:
         return False
